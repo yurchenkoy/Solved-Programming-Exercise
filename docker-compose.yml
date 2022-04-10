@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-alpine
+    container_name: rabbitmq_broker
+    restart: unless-stopped
+    network_mode: host
+
+  random_number_generator:
+    image: registry.gitlab.com/aivero/open-source/programming-exercise/rand-num:master
+    container_name: rand_gen
+    network_mode: host
+    environment:
+      - NUMBER_OF_MESSAGES=10000
+      - WAIT_MILLIES=0
+    depends_on:
+      - rabbitmq
+
+  results:
+    image: results-dev:latest
+    container_name: results_attempt
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - rabbitmq
+      - random_number_generator
+  
+  validator:
+    image: registry.gitlab.com/aivero/open-source/programming-exercise/validator:master
+    container_name: validator
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      RESULT_FILE_PATH: /results/results.csv
+    depends_on:
+      - rabbitmq
+    volumes:
+    - ./results:/results:rw
